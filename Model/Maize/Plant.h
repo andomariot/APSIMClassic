@@ -13,6 +13,9 @@
 #include "Stem.h"
 #include "Rachis.h"
 #include "Grain.h"
+#include "GrainCM.h"
+#include "StemCM.h"
+#include "BiomassCM.h"
 
 #include "Nitrogen.h"
 #include "Phosphorus.h"
@@ -141,7 +144,7 @@ namespace Maize {
 		void onNewMet(NewMetType &);
 		void onNewProfile(NewProfileType &v);
 
-		void onSowCrop(Variant &);
+		void onSowCrop(SowType &);
 		void onHarvest(void);
 		void onEndCrop(void);
 		void onEndRun(void);
@@ -162,6 +165,7 @@ namespace Maize {
 		string getCropType(void)const { return cropType; }
 
 		double getRadnInt(void)const { return radnIntercepted; }
+		void setRadInt(double radInt) { radnIntercepted = radInt; }
 
 		double getPlantDensity(void)const { return plantDensity; }
 		double getRowSpacing(void)const { return rowSpacing; }
@@ -176,6 +180,9 @@ namespace Maize {
 		void get_height(float &);
 
 		void   phenologyEvent(int stage);
+		bool isEmerged(void)const { return phenology->currentStage() >= emergence; }
+
+
 	};  // Plant
 }
 #endif //PLANT_H_

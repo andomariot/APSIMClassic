@@ -21,6 +21,7 @@ Paddock:
    Component                   "Irrigation" = %apsim%\Model\Irrigation.dll
    Component          "Sow on a fixed date" = %apsim%\Model\Manager.dll
    Component              "Harvesting rule" = %apsim%\Model\Manager.dll
+   Component                     "DoOutput" = %apsim%\Model\Manager.dll
    Component                 "bmw257 Water" = %apsim%\Model\SoilWat.dll
    Component       "surface organic matter" = %apsim%\Model\SurfaceOM.dll
    Component              "bmw257 Nitrogen" = %apsim%\Model\SoilN.dll
@@ -73,14 +74,20 @@ Paddock:
         LAI
         SLAI
         esw_profile as ESW
-        no3() as NO3
         SLN
         WaterSD
-        sw()
         HI
         TPLA
         SPLA
         Height
+        cover_green
+        cover_tot
+        sw_supply
+        RootDepth
+        no3() as NO3
+        nfact_photo
+        Yield
+        GrainYield
 
      Output file = bmw257.out
      Format = normal
@@ -136,7 +143,6 @@ Paddock:
      if (paddock_is_fallow() = 0) then
         stover = biomass - yield
         acctt = acctt + deltatt
-        outputfile do_output
      else
         acctt = 0
      endif
@@ -148,6 +154,21 @@ Paddock:
        maize  harvest
        maize  end_crop
                 endif
+     END of rules
+     
+
+------- paddock.DoOutput Initialisation ---------------------------------------
+     Manager rules:
+     
+     SECTION:- init
+     
+     SECTION:- start_of_day
+     
+     SECTION:- end_of_day
+     if (paddock_is_fallow() = 0) then
+        grainyield = graingreenwt * 10
+        outputfile do_output
+     endif
      END of rules
      
 
@@ -344,10 +365,12 @@ Paddock:
      
 18 December 1985(Day of year=352), paddock.Harvesting rule: 
      Manager creating a new local real variable : stover = 0.00000
+18 December 1985(Day of year=352), paddock.DoOutput: 
+     Manager creating a new local real variable : grainyield = 0.00000
 19 December 1985(Day of year=353), Maize: 
      Stage 2 Germination  DAS = 1
      		Biomass       =   0.00 		 LAI            =   0.00
-     		Stover N Conc =   0.00 		 Extractable SW =   0.00
+     		Stover N Conc =   0.00 		 Extractable SW =   2.07
 20 December 1985(Day of year=354), paddock.Operations Schedule: 
       Sending apply message to irrigation
 22 December 1985(Day of year=356), Maize: 
@@ -356,7 +379,7 @@ Paddock:
      		Stover N Conc =   0.00 		 Extractable SW =   8.61
 26 December 1985(Day of year=360), Maize: 
      Stage 4 EndOfJuvenile  DAS = 8
-     		Biomass       =   0.51 		 LAI            =   0.02
+     		Biomass       =   0.50 		 LAI            =   0.02
      		Stover N Conc =   0.03 		 Extractable SW =  20.02
 4 January 1986(Day of year=4), paddock.Operations Schedule: 
       Sending apply message to irrigation
@@ -364,7 +387,7 @@ Paddock:
       Sending apply message to irrigation
 5 January 1986(Day of year=5), Maize: 
      Stage 5 FloralInitiation  DAS = 18
-     		Biomass       =  11.42 		 LAI            =   0.14
+     		Biomass       =  11.39 		 LAI            =   0.14
      		Stover N Conc =   0.26 		 Extractable SW =  58.92
 17 January 1986(Day of year=17), paddock.Operations Schedule: 
       Sending apply message to irrigation
@@ -376,20 +399,20 @@ Paddock:
       Sending apply message to irrigation
 6 February 1986(Day of year=37), Maize: 
      Stage 6 FlagLeaf  DAS = 50
-     		Biomass       = 387.20 		 LAI            =   2.32
-     		Stover N Conc =   5.39 		 Extractable SW =  47.09
+     		Biomass       = 386.16 		 LAI            =   2.33
+     		Stover N Conc =   5.40 		 Extractable SW =  47.16
 7 February 1986(Day of year=38), Maize: 
      Stage 7 Flowering  DAS = 51
-     		Biomass       = 404.00 		 LAI            =   2.34
-     		Stover N Conc =   5.52 		 Extractable SW =  42.26
+     		Biomass       = 402.98 		 LAI            =   2.33
+     		Stover N Conc =   5.53 		 Extractable SW =  42.31
 9 February 1986(Day of year=40), paddock.Operations Schedule: 
       Sending apply message to irrigation
 16 February 1986(Day of year=47), paddock.Operations Schedule: 
       Sending apply message to irrigation
 16 February 1986(Day of year=47), Maize: 
      Stage 8 StartGrainFill  DAS = 60
-     		Biomass       = 490.63 		 LAI            =   2.16
-     		Stover N Conc =   6.05 		 Extractable SW =  27.58
+     		Biomass       = 489.75 		 LAI            =   2.31
+     		Stover N Conc =   5.99 		 Extractable SW =  27.66
 19 February 1986(Day of year=50), paddock.Operations Schedule: 
       Sending apply message to irrigation
 22 February 1986(Day of year=53), paddock.Operations Schedule: 
@@ -404,16 +427,16 @@ Paddock:
       Sending apply message to irrigation
 26 March 1986(Day of year=85), Maize: 
      Stage 9 EndGrainFill  DAS = 98
-     		Biomass       = 687.84 		 LAI            =   1.85
-     		Stover N Conc =   4.92 		 Extractable SW =  21.25
+     		Biomass       = 686.00 		 LAI            =   1.97
+     		Stover N Conc =   4.85 		 Extractable SW =  21.18
 28 March 1986(Day of year=87), Maize: 
      Stage 10 Maturity  DAS = 100
-     		Biomass       = 696.53 		 LAI            =   1.76
-     		Stover N Conc =   4.80 		 Extractable SW =  14.91
+     		Biomass       = 694.75 		 LAI            =   1.87
+     		Stover N Conc =   4.73 		 Extractable SW =  14.86
 29 March 1986(Day of year=88), Maize: 
      Stage 11 HarvestRipe  DAS = 101
-     		Biomass       = 700.91 		 LAI            =   1.76
-     		Stover N Conc =   4.74 		 Extractable SW =  12.19
+     		Biomass       = 694.75 		 LAI            =   1.87
+     		Stover N Conc =   4.73 		 Extractable SW =  12.14
 29 March 1986(Day of year=88), paddock.Harvesting rule: 
      Manager sending message :- maize harvest
      
@@ -421,16 +444,16 @@ Paddock:
      Flowering (DAS)       = 51 		 Maturity (DAS)          = 100
      Flowering day         = 38 		 Maturity day            = 87
      Maximum LAI           = 2.3 		 Number of leaves        = 12.7
-     Total above ground biomass    (kg/ha) = 7009.1
-     Green above ground biomass    (kg/ha) = 6554.7
-     Senesced above ground biomass (kg/ha) = 454.4
-     Stover (kg/ha)        = 5484.7 	 Grain yield (kg/ha)     = 1524.4
-     Grain % water content = 15.5 		 Grain yield wet (kg/ha) = 1804.0
-     Weight 1000 grains(g) = 342.5 		 Grains/m^2              = 445.1
-     Grains/head           = 67.8
-     Grain N percent    (%)     =      1.44 	 Grain N            (kg/ha) =    21.92
-     Total N content    (kg/ha) =     69.29 	 Senesced N content (kg/ha) =     9.52
-     Green N content    (kg/ha) =     57.47
+     Total above ground biomass    (kg/ha) = 6947.5
+     Green above ground biomass    (kg/ha) = 6584.5
+     Senesced above ground biomass (kg/ha) = 363.0
+     Stover (kg/ha)        = 5451.9 	 Grain yield (kg/ha)     = 1495.6
+     Grain % water content = 15.5 		 Grain yield wet (kg/ha) = 1769.9
+     Weight 1000 grains(g) = 332.5 		 Grains/m^2              = 449.8
+     Grains/head           = 68.5
+     Grain N percent    (%)     =      1.43 	 Grain N            (kg/ha) =    21.39
+     Total N content    (kg/ha) =     68.68 	 Senesced N content (kg/ha) =     7.91
+     Green N content    (kg/ha) =     59.60
      
      Average Stress Indices:                          Water Photo  Water Expan  N Photo
         Emergence           to End of juvenile           1.0          1.0        1.0
@@ -442,13 +465,13 @@ Paddock:
      
      Crop harvested.
         Organic matter removed from system:-      From Tops		From Roots
-                         DM (kg/ha) =               1524.41		    0.00
-                         N  (kg/ha) =                 21.92		    0.00
+                         DM (kg/ha) =               1495.57		    0.00
+                         N  (kg/ha) =                 21.39		    0.00
      Manager sending message :- maize end_crop
      Crop ended.
      Organic matter from crop:-      Tops to surface residue	 Roots to soil FOM
-                         DM (kg/ha) =               5484.66		 3657.38
-                         N  (kg/ha) =                 47.36		   19.63
+                         DM (kg/ha) =               5451.89		 3736.16
+                         N  (kg/ha) =                 47.29		   20.22
                          P  (kg/ha) =                  0.00		    0.00
 30 May 1986(Day of year=150), clock: 
      Simulation is terminating due to end criteria being met.

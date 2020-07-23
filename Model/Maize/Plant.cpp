@@ -32,6 +32,11 @@ void Plant::initialize(void)
 	initialized = false;
 	transpEff = 0.0;
 	ftn = 0.0;
+    radnIntercepted = 0.0;
+    co2 = 0.0;
+    coverGreen = 0.0;
+    latitude = 0.0;
+    vpd = 0.0;
    }
 //------------------------------------------------------------------------------------------------
 //------------ read the crop and cultivar parameters
@@ -91,9 +96,25 @@ void Plant::plantInit1(void)
 
    roots     = new Roots(scienceAPI, this);   PlantComponents.push_back(roots); PlantParts.push_back(roots);
    leaf      = new Leaf(scienceAPI, this);    PlantComponents.push_back(leaf);  PlantParts.push_back(leaf);
-   stem      = new Stem(scienceAPI, this);    PlantComponents.push_back(stem);  PlantParts.push_back(stem);
-   rachis    = new Rachis(scienceAPI, this);  PlantComponents.push_back(rachis);PlantParts.push_back(rachis);
-   grain     = new Grain(scienceAPI, this);   PlantComponents.push_back(grain); PlantParts.push_back(grain);
+
+   string grainClass = ""; scienceAPI.read("GrainClass", "", true, grainClass);
+   if (grainClass == "Classic" || grainClass == "")
+   {
+	   stem = new Stem(scienceAPI, this);
+	   grain = new Grain(scienceAPI, this);
+   }
+   else if (grainClass == "Cohort")
+   {
+	   stem = new StemCM(scienceAPI, this);
+	   grain = new GrainCM(scienceAPI, this);
+	   scienceAPI.write("Grain Abortion Method initiated\n");
+
+   }
+   //grain     = new Grain(scienceAPI, this);   
+   PlantComponents.push_back(grain); PlantParts.push_back(grain);
+   PlantComponents.push_back(stem);  PlantParts.push_back(stem);
+   
+   rachis = new Rachis(scienceAPI, this);  PlantComponents.push_back(rachis); PlantParts.push_back(rachis);
 
    phenology = new Phenology(scienceAPI, this); PlantComponents.push_back(phenology);
    PlantProcesses.push_back(phenology);
@@ -103,7 +124,17 @@ void Plant::plantInit1(void)
    PlantProcesses.push_back(phosphorus);
    water     = new Water(scienceAPI, this);     PlantComponents.push_back(water);
    PlantProcesses.push_back(water);
-   biomass   = new Biomass(scienceAPI, this);   PlantComponents.push_back(biomass);
+   
+   if (grainClass == "Classic" || grainClass == "")
+   {
+	   biomass = new Biomass(scienceAPI, this);
+   }
+   else if (grainClass == "Cohort")
+   {
+	   biomass = new BiomassCM(scienceAPI, this);
+	   scienceAPI.write("Grain Abortion Method initiated\n");
+   }
+   PlantComponents.push_back(biomass);
    PlantProcesses.push_back(biomass);
 
    doRegistrations();
@@ -132,7 +163,7 @@ void Plant::setStatus(Status status)
 //------------------------------------------------------------------------------------------------
 //------------------- Field a Sow event
 //------------------------------------------------------------------------------------------------
-void Plant::onSowCrop(Variant &sowLine)
+void Plant::onSowCrop(SowType &sow)
    {
    if(plantStatus != out)
       throw std::runtime_error("Crop is still in the ground -\n unable to sow until it is\n taken out by \"end_crop\" action.");
@@ -140,27 +171,30 @@ void Plant::onSowCrop(Variant &sowLine)
    scienceAPI.write("Sowing initiate\n");
 
    string temp;
-   if (sowLine.get("crop_class", temp) == false)
+   if (sow.crop_class == "")
       cropClass = defaultCropClass;
    else
-      cropClass = temp;
+      cropClass = sow.crop_class;
 
-   if (sowLine.get("cultivar", temp) == false)
+   if (sow.Cultivar == "")
       throw std::runtime_error("Cultivar not specified");
    else
-      cultivar = temp;
+      cultivar = sow.Cultivar;
 
-   if (sowLine.get("plants", plantDensity) == false)
+   plantDensity = (float)sow.plants;
+   if (plantDensity == 0)
       throw std::runtime_error("plant density ('plants') not specified");
 
    checkRange(scienceAPI, plantDensity, 0.0, 1000.0, "plants");
 
-   if (sowLine.get("sowing_depth", sowingDepth) == false)
+   sowingDepth = (float)sow.sowing_depth;
+   if (sowingDepth == 0)
       throw std::runtime_error("sowing depth not specified");
 
    checkRange(scienceAPI,sowingDepth, 0.0, 100.0, "sowing_depth");
 
-   if (sowLine.get("row_spacing", rowSpacing) == false)
+   rowSpacing = (float)sow.row_spacing;
+   if (rowSpacing == 0)
       rowSpacing = (float)rowSpacingDefault;
    // row spacing was originally in metres
    // for compatibility, is now in mm
@@ -173,13 +207,13 @@ void Plant::onSowCrop(Variant &sowLine)
    checkRange(scienceAPI, rowSpacing, 100.0, 10000.0, "row_spacing");
 
    skipRow = 1.0;
-   if (sowLine.get("skip", temp) )
+   if (sow.Skip != "")
       {
-      if (temp == "single")skipRow = 1.5;
-      else if (temp == "double")skipRow = 2.0;
-      else if (temp == "solid")skipRow = 1.0;
+      if (sow.Skip == "single")skipRow = 1.5;
+      else if (sow.Skip == "double")skipRow = 2.0;
+      else if (sow.Skip == "solid")skipRow = 1.0;
       else
-         throw std::runtime_error("Unknown skip row configuration '" + temp + "'");
+        throw std::runtime_error("Unknown skip row configuration '" + sow.Skip + "'");
       }             
 
    checkRange(scienceAPI,skipRow, 0.0, 2.0, "skiprow");
@@ -219,7 +253,18 @@ void Plant::onSowCrop(Variant &sowLine)
 //------------------------------------------------------------------------------------------------
 void Plant::prepare (void)
    {
-	
+
+
+   if (!scienceAPI.get("co2", "mg/kg", true, co2, 300.0f, 1000.0f))
+      co2 = 350.0;
+
+   tempStress = tempStressTable.value(today.avgT);
+   radnIntercepted = radnInt();
+	double rueToday = rue * rue_co2_modifier();
+	biomass->calcBiomassRUE(rueToday,radnIntercepted);
+   transpEff = transpEfficiency();
+   water->calcDemand();
+
    // at beginning of day, reset the daily dlt variables
    for(unsigned i=0;i < PlantParts.size();i++)
       {
@@ -234,24 +279,36 @@ void Plant::prepare (void)
 //------------------------------------------------------------------------------------------------
 void Plant::process (void)                 // do crop growth and development
    {
-
-   if (!scienceAPI.get("co2", "mg/kg", true, co2, 300.0f, 1000.0f))
-      co2 = 350.0;
-
-	// TODO this rue/transpiration code should be shifted to Leaf
-   tempStress = tempStressTable.value(today.avgT);
-   radnIntercepted = radnInt();
-	double rueToday = rue * rue_co2_modifier();
-	biomass->calcBiomassRUE(rueToday,radnIntercepted);
-   transpEff = transpEfficiency();
 	
-	water->process();
+   stage = (float)phenology->currentStage();
+
+   water->getOtherVariables();
+   water->calcDailySupply();
+	
+	if (biomass->useDCAPS())
+	{
+		biomass->calcBiomassDCAPS();
+		//DCAPS give sw demand
+	}
+
+	water->calcStresses();
+	water->calcUptake();
+
 	stem->calcCanopyHeight();
 	leaf->potentialGrowth();
+
 	phenology->development();
+
+	stage = phenology->currentStage();
+   for (unsigned i = 0; i < PlantParts.size(); i++)
+   {
+	   PlantParts[i]->setStage(stage);
+   }
+
    grain->process();
 	biomass->process();
 	roots->process();
+   
 	leaf->actualGrowth();
    nitrogen->process();
    biomass->dmScenescence();         // moved because nitrogen now causes senescence
@@ -312,13 +369,29 @@ void Plant::death(void)
    //need to kill plant if lai = 0
    //gmc & rlv
    /* TODO : Check this to see what happens if LAI < 0.1 before flag - or if possible */
+   
+   //kill plant if lai falls to 0 - very severe stress or severe frost event
+   char msg[120];
+   if (stage > fi && stage < maturity)
+      {
+      if (leaf->getLAI() - leaf->getDltSlai() < 0.0001)
+         {
+         dltDeadPlants = -plantDensity;
+         scienceAPI.write(" ********** Crop failed due to loss of leaf area ********\n");
+         sprintf(msg, "\tLAI: %.3f \t\tDltSLAI: %.3f \t\tDltLAI: %.2f\n", leaf->getLAI(), leaf->getDltSlai(), leaf->getDltLAI());
+         scienceAPI.write(msg);
+         }
+      }
 
+   //kill plant if lai falls below 0.1 - water stress not frost
    if (stage >= flag && stage < maturity)
       {
       if (leaf->getLAI() - leaf->getDltSlai() < 0.1)
          {
          dltDeadPlants = -plantDensity;
          scienceAPI.write(" ********** Crop failed due to loss of leaf area ********");
+         sprintf(msg, "\tLAI: %.3f \t\tDltSLAI: %.3f \t\tDltLAI: %.2f\n", leaf->getLAI(), leaf->getDltSlai(), leaf->getDltLAI());
+         scienceAPI.write(msg);
          }
       }
 

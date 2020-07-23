@@ -1,4 +1,4 @@
-<folder version="37" creator="Apsim 7.10-r4158" name="Graphs">
+<folder version="37" creator="Apsim 7.10-r0" name="Graphs">
   <RegressionGraph name="Biomass">
     <Legend>
       <CheckedTitles> Predicted/Observed</CheckedTitles>

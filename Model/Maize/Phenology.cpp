@@ -42,7 +42,9 @@ void Phenology::initialize(void)
 	floweringDOY = 0;
 	maturityDAS = 0;
 	maturityDOY = 0;
-	//photoPeriod = 0;
+	photoPeriod = 0;
+	stageCode = 0;
+	stage = 0;
 }
 //------------------------------------------------------------------------------------------------
 //------ get the Phenology parameters
@@ -285,7 +287,7 @@ double Phenology::calcStressesTT(void)
 		}
 		else
 		{
-			Stress = Min(plant->water->phenologyStress(), Max(0.5, plant->nitrogen->getPhenoStress()));
+			Stress = Min(Min(plant->water->phenologyStress(), plant->phosphorus->getPhenoStress()), Max(0.5, plant->nitrogen->getPhenoStress()));
 		}
 		//Update dltTT
 		dltTT *= Stress;
@@ -370,3 +372,20 @@ void Phenology::Summary(void)
 }
 //------------------------------------------------------------------------------------------------
 
+double Phenology::calcStageTarget(int baseStage, double deltaTT)
+{
+	// calculate the target stage that is deltaTT from baseStage. E.G. 25oCd before flowering
+	if (deltaTT == 0.0)return baseStage;
+	double target = baseStage;
+	if (deltaTT <= 0.0)
+		for (int i = baseStage; i; i--)
+		{
+			target--;
+			if (fabs(deltaTT) < ttTarget[i - 1])
+				return target + divide((ttTarget[i - 1] + deltaTT), ttTarget[i - 1]);
+			else
+				deltaTT += ttTarget[i - 1];
+		}
+	return 0.0;
+}
+//------------------------------------------------------------------------------------------------

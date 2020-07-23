@@ -55,7 +55,9 @@ void LeafCulms::initialize()
 	supply = 0;
 	demand = 0;
 	tillers = 0.0;
-
+	tilleringPropensity = 0;
+	tillerSdSlope = 0;
+	tillerSlaBound = 0;
 	//Culms[0]->initialize();
 	Leaf::initialize();
 }
@@ -150,6 +152,10 @@ void LeafCulms::calcPotentialArea(void)
 		{
 			dltPotentialLAI += Culms[i]->calcPotentialLeafArea();
 			dltStressedLAI = calcStressedLeafArea();		// dltPotentialLAI * totalStress(0-1)
+			if (dltStressedLAI != dltPotentialLAI)
+			{
+				int tmp = 0;
+			}
 		}
 	}
 }
@@ -744,10 +750,10 @@ double Culm::calcPotentialLeafArea(void)
 {
 	//once leaf no is calculated leaf area of largest expanding leaf is determined
 	double leafNoEffective = Min(currentLeafNo + leafNoCorrection, finalLeafNo - leafNoAtAppearance);
-	leafArea = calcIndividualLeafSize(leafNoEffective);
+	double leafsize = calcIndividualLeafSize(leafNoEffective);
 	//leafArea = getAreaOfCurrentLeaf(leafNoEffective);		HACK
 	//leafArea *= proportion; //proportion is 1 unless this tiller is a fraction ie: Fertile Tiller Number is 2.2, then 1 tiller is 0.2
-	leafArea = leafArea * smm2sm * density * dltLeafNo; // in dltLai
+	leafArea = leafsize * smm2sm * density * dltLeafNo; // in dltLai
 	totalLAI += leafArea;
 	return (leafArea * proportion);
 }

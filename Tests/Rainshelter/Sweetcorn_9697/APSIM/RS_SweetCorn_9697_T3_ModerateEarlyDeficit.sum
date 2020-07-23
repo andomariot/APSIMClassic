@@ -364,7 +364,7 @@ Paddock:
 31 October 1996(Day of year=305), maize: 
      Stage 2 Germination  DAS = 1
      		Biomass       =   0.00 		 LAI            =   0.00
-     		Stover N Conc =   0.00 		 Extractable SW =   0.00
+     		Stover N Conc =   0.00 		 Extractable SW =   1.40
 4 November 1996(Day of year=309), maize: 
      Stage 3 Emergence  DAS = 5
      		Biomass       =   0.00 		 LAI            =   0.00
@@ -372,11 +372,11 @@ Paddock:
 12 November 1996(Day of year=317), maize: 
      Stage 4 EndOfJuvenile  DAS = 13
      		Biomass       =   0.56 		 LAI            =   0.02
-     		Stover N Conc =   0.03 		 Extractable SW =  13.91
+     		Stover N Conc =   0.03 		 Extractable SW =  13.90
 1 December 1996(Day of year=336), maize: 
      Stage 5 FloralInitiation  DAS = 32
-     		Biomass       =  18.78 		 LAI            =   0.15
-     		Stover N Conc =   0.38 		 Extractable SW =  12.02
+     		Biomass       =  18.50 		 LAI            =   0.15
+     		Stover N Conc =   0.38 		 Extractable SW =  12.04
 30 December 1996(Day of year=365), paddock.operations: 
       Sending apply message to irrigation
 7 January 1997(Day of year=7), paddock.operations: 
@@ -389,22 +389,22 @@ Paddock:
       Sending apply message to irrigation
 4 February 1997(Day of year=35), paddock.operations: 
       Sending apply message to irrigation
-10 February 1997(Day of year=41), maize: 
-     Stage 6 FlagLeaf  DAS = 103
-     		Biomass       = 636.40 		 LAI            =   1.82
-     		Stover N Conc =   3.69 		 Extractable SW =  24.49
 11 February 1997(Day of year=42), paddock.operations: 
       Sending apply message to irrigation
 11 February 1997(Day of year=42), maize: 
-     Stage 7 Flowering  DAS = 104
-     		Biomass       = 647.33 		 LAI            =   1.85
-     		Stover N Conc =   3.77 		 Extractable SW =  47.87
+     Stage 6 FlagLeaf  DAS = 104
+     		Biomass       = 757.90 		 LAI            =   2.38
+     		Stover N Conc =   4.29 		 Extractable SW =  43.00
+12 February 1997(Day of year=43), maize: 
+     Stage 7 Flowering  DAS = 105
+     		Biomass       = 781.91 		 LAI            =   2.38
+     		Stover N Conc =   4.39 		 Extractable SW =  39.28
 18 February 1997(Day of year=49), paddock.operations: 
       Sending apply message to irrigation
-22 February 1997(Day of year=53), maize: 
-     Stage 8 StartGrainFill  DAS = 115
-     		Biomass       = 824.81 		 LAI            =   1.85
-     		Stover N Conc =   4.91 		 Extractable SW =  45.95
+23 February 1997(Day of year=54), maize: 
+     Stage 8 StartGrainFill  DAS = 116
+     		Biomass       = 990.04 		 LAI            =   2.38
+     		Stover N Conc =   5.03 		 Extractable SW =  35.45
 24 February 1997(Day of year=55), paddock.operations: 
       Sending apply message to irrigation
 4 March 1997(Day of year=63), paddock.operations: 

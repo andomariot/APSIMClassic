@@ -46,6 +46,7 @@ namespace Sorghum {
 			double senWaterTimeConst;  // delay factor for water senescence
 			double senThreshold;       // supply:demand ratio for onset of water senescence
 			double frostKill;          // temperature threshold for leaf death
+			double frostKillSevere;    // temperature threshold for plant death
 
 			// nitrogen
 			double initialSLN;
@@ -152,7 +153,7 @@ namespace Sorghum {
 			// nitrogen
 			double calcNDemand(void);
 			double calcNewLeafNDemand(void);
-			double provideN(double requiredN);
+			double provideN(double requiredN, bool fromLeaf);
 			double getSLN(void)const{return SLN;}
 			double laiToday(void)const;
 

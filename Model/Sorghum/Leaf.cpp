@@ -12,6 +12,7 @@ Leaf::Leaf(ScienceAPI2 &api, Plant *p) : PlantPart(api)
    plant = p;
    name = "Leaf";
    partNo = 1;
+   frostKillSevere = -3.5;
 
    initialize();
    doRegistrations();
@@ -32,6 +33,9 @@ void Leaf::doRegistrations(void)
    scienceAPI.expose("DeltaLAI",       "m2/m2", "Leaf area growth rate",           false, dltLAI);
    scienceAPI.expose("SLAI",           "m2/m2", "Senesced plant LAI",              false, sLai);
    scienceAPI.expose("DeltaSLAI",      "m2/m2", "Leaf area senescence rate",       false, dltSlai);
+   scienceAPI.expose("DeltaSlaiFrost", "m2/m2", "Senesced leaf area from frost",   false, dltSlaiFrost);
+   scienceAPI.expose("DeltaSlaiLight", "m2/m2", "Senesced leaf area from light",   false, dltSlaiLight);
+   scienceAPI.expose("DeltaSlaiWater", "m2/m2", "Senesced leaf area from age",     false, dltSlaiWater);
    scienceAPI.expose("TPLA",           "m2",    "Total plant leaf area",           false, tpla);
    scienceAPI.expose("SPLA",           "m2",    "Senesced plant leaf area",        false, spla);
    scienceAPI.expose("GPLA",           "m2",    "Green plant leaf area",           false, spla);
@@ -91,6 +95,17 @@ void Leaf::initialize(void)
    coverGreen = 0.0;
    coverSen   = 0.0;
    coverTot   = 0.0;
+
+   tplaInflectionRatio = 0;
+   tplaProductionCoef = 0;
+   dmTotal = 0;
+   tillerCoef = 0;
+   mainStemCoef = 0;
+   dltStressedLAI = 0;
+   dltSlaiLight = 0;
+   dltSlaiWater = 0;
+   dltSlaiFrost = 0;
+
    PlantPart::initialize();
    }
 //------------------------------------------------------------------------------------------------
@@ -135,6 +150,7 @@ void Leaf::readParams (void)
    scienceAPI.read("sen_threshold"       , "", false, senThreshold);
    scienceAPI.read("sen_water_time_const", "", false, senWaterTimeConst);
    scienceAPI.read("frost_kill"          , "", false, frostKill);
+   scienceAPI.read("frost_kill_severe"   , "", true, frostKillSevere);
 
    // phosphorus
    pMaxTable.read(scienceAPI, "x_p_stage_code","y_p_conc_max_leaf");
@@ -201,6 +217,7 @@ void Leaf::updateVars(void)
 //------------------------------------------------------------------------------------------------
 void Leaf::process(void)
    {
+	// This NEVER gets called!?!?!?
    areaActual();
    senesceArea();
    }
@@ -279,6 +296,7 @@ void Leaf::calcPotentialArea(void)
 //------------------------------------------------------------------------------------------------
 void Leaf::areaActual(void)
    {
+	// This NEVER gets called!?!?!?
    if(stage >= endJuv && stage < maturity)
       dltLAI = Min(dltStressedLAI,dltDmGreen * slaMax * smm2sm);
    else dltLAI = dltStressedLAI;
@@ -312,28 +330,64 @@ void Leaf::senesceArea(void)
    // senesced leaf area due to N
    dltSlai = Max(dltSlai,dltSlaiN);
 
-   }
+}
 //------------------------------------------------------------------------------------------------
 double Leaf::calcLaiSenescenceFrost(void)
    {
-   //  calculate senecence due to frost
-	if (stage <= emergence)return 0.0;
-   double dltSlaiFrost = 0.0;
-   if (plant->today.minT < frostKill)
-		{
-		if(stage < fi)
-         dltSlaiFrost = Max(0.0,lai - 0.01);
-		else
-			dltSlaiFrost = lai;
-		}
+   //frostKillSevere will kill the plant at any stage
+   //frostKill will remove LAI but only kill the plant between FloralInit and Flowering
+   
+   //  calculate senescence due to frost
+   if (plant->today.minT > frostKill) return 0.0;
+   if (stage <= emergence) return 0.0;
+   double senescedLAI = 0.0;
 
-   return dltSlaiFrost;
+   char msg[120];
+   if (plant->today.minT > frostKillSevere)
+      {
+      //Temperature is warmer than frostKillSevere, but cooler than frostKill
+      if(stage < fi)
+         {
+         //the plant will survive but all of the leaf area is removed except a fraction
+         sprintf(msg,"Frost Event: (Non Fatal) \n");
+         scienceAPI.write(msg);
+         sprintf(msg, "\t\tMin Temp      = %.2f \t\t Senesced LAI    = %.2f\n", plant->today.minT, lai - 0.01);
+         scienceAPI.write(msg);
+
+         senescedLAI =  Max(0.0,lai - 0.1);
+         }
+      else if(stage > flowering)
+         {
+            //after flowering it takes a servereFrost to kill the plant
+            //not sure what the effect on LAI should be after this stage
+            senescedLAI = 0.0;
+         }
+      else
+         {
+            //between floralInit and Flowering the plant will be killed
+            senescedLAI = lai;
+         }
+      }
+   else
+      {
+         //Temperature is colder or equal to frostKillSevere parameter
+         sprintf(msg, "Frost Event: (Fatal) \n");
+         scienceAPI.write(msg);
+         sprintf(msg, "\t\tMin Temp      = %.2f \t\t Senesced LAI    = %.2f\n", plant->today.minT, lai - 0.01);
+         scienceAPI.write(msg);
+         //the plant will be killed as it's LAI will be 0
+         senescedLAI = lai;
+      }
+      
+      return senescedLAI;
    }
    /* TODO : put in messages */
 //------------------------------------------------------------------------------------------------
 double Leaf::calcLaiSenescenceWater(void)
    {
    /* TODO : Direct translation sort of. needs work */
+	double dtmp = plant->water->getTotalSupply();
+
    double dlt_dm_transp = plant->biomass->getDltDMPotTE();
 
    double effectiveRue = plant->biomass->getEffectiveRue();
@@ -355,13 +409,15 @@ double Leaf::calcLaiSenescenceWater(void)
    double avLaiEquilibWater = movingAvgVector(laiEquilibWater,10);
 
    // calculate a 5 day moving average of the supply demand ratio
-   avSD.push_back(plant->water->getSdRatio());
+   double sdRatio = plant->water->getSdRatio();
+   avSD.push_back(sdRatio);
 
    double dltSlaiWater = 0.0;
    if(movingAvgVector(avSD,5) < senThreshold)
       dltSlaiWater = Max(0.0,divide((lai - avLaiEquilibWater) , senWaterTimeConst,0.0));
 
    dltSlaiWater = Min(lai,dltSlaiWater);
+   
 
    return dltSlaiWater;
    }
@@ -375,8 +431,8 @@ double Leaf::calcNDemand(void)
 
    double laiToday = calcLAI();
    double nRequired = laiToday * targetSLN;
-
-   nDemand = Max(nRequired - nGreen,0.0);
+   double nToday = nGreen + dltNGreen;
+   nDemand = Max(nRequired - nToday,0.0);
    return nDemand;
    }
 //------------------------------------------------------------------------------------------------
@@ -395,18 +451,17 @@ double Leaf::calcLAI(void)
 double Leaf::calcSLN(void)
    {
    double laiToday = calcLAI();
-   double nGreenToday = nGreen + dltNGreen - dltNRetranslocate;
+   double nGreenToday = nGreen + dltNGreen + dltNRetranslocate; //-ve
    double slnToday = divide(nGreenToday,laiToday);
    return slnToday;
    }
 //------------------------------------------------------------------------------------------------
-double Leaf::provideN(double requiredN)
+double Leaf::provideN(double requiredN, bool forLeaf)
    {
    // calculate the N available for translocation to other plant parts
    // N could be required for structural Stem/Rachis N, new leaf N or grain N
    // Canopy N is made available by dilution until SLN = 1.0 then by
    // dilution, reducing delta lai and senescence
-
 
    double laiToday = calcLAI();
    double slnToday = calcSLN();
@@ -426,19 +481,28 @@ double Leaf::provideN(double requiredN)
          return nProvided;
 
       // not sufficient N from dilution - take from decreasing dltLai and senescence
-      if(dltLAI > 0)
+	  if (dltLAI > 0)
          {
+         // Only half of the requiredN can be accounted for by reducing DltLAI
+         // If the RequiredN is large enough, it will result in 0 new growth
+         // Stem and Rachis can technically get to this point, but it doesn't occur in all of the validation data sets
+         
          double n = dltLAI * newLeafSLN;
-         double laiN = Min(n,requiredN/2);
+         double laiN = Min(n,requiredN/2.0);
+         
          dltLAI = (n - laiN) / newLeafSLN;
-         requiredN -= laiN;
-         nProvided += laiN;
+         if (forLeaf) 
+            {
+            requiredN -= laiN;
+            }
          }
-      // recalc the SLN after this N has been removed
+
+	  // recalc the SLN after this N has been removed
       laiToday = calcLAI();
       slnToday = calcSLN();
       double maxN = plant->phenology->getDltTT()
       * (dilnNSlope * slnToday + dilnNInt) * laiToday;
+	  maxN = Max(maxN, 0);
       requiredN = Min(requiredN,maxN);
 
       double senescenceLAI = Max(divide(requiredN,(slnToday-senescedLeafSLN)),0.0);
@@ -448,10 +512,8 @@ double Leaf::provideN(double requiredN)
       nProvided += newN;
       dltSlaiN += senescenceLAI;
       dltSlai = Max(dltSlai,dltSlaiN);
-
       dltNSenesced += senescenceLAI * senescedLeafSLN;
-
-      return nProvided;
+	  return nProvided;
       }
    else        // post anthesis
       {
@@ -479,6 +541,7 @@ double Leaf::provideN(double requiredN)
          nProvided += newN;
          dltSlaiN += senescenceLAI;
          dltSlai = Max(dltSlai,dltSlaiN);
+		 
 
          dltNSenesced += senescenceLAI * senescedLeafSLN;
 
@@ -507,6 +570,8 @@ double Leaf::provideN(double requiredN)
          nProvided += newN;
          dltSlaiN += senescenceLAI;
          dltSlai = Max(dltSlai,dltSlaiN);
+		 if (dltSlai > 0.0000001)
+			 int tmp = 0;
 
          dltNSenesced += senescenceLAI * senescedLeafSLN;
 
@@ -634,16 +699,16 @@ double Leaf::calcEmergFlagTT(void)
           (finalLeafNo - nLeavesAtChange) * appearanceRate2;
    }
 //------------------------------------------------------------------------------------------------
-double Leaf::laiToday(void)const
-   {
-   return Max(0.0, lai + dltLAI - dltSlai);
-   }
-//------------------------------------------------------------------------------------------------
-void Leaf::addDltSlai(double add)
-   {
-   dltSlai += add;
-   dltSlai = Min(sLai, lai + dltLAI);
-   }
+//double Leaf::laiToday(void)const
+//   {
+//   return Max(0.0, lai + dltLAI - dltSlai);
+//   }
+////------------------------------------------------------------------------------------------------
+//void Leaf::addDltSlai(double add)
+//   {
+//   dltSlai += add;
+//   dltSlai = Min(sLai, lai + dltLAI);
+//   }
 //------------------------------------------------------------------------------------------------
 void Leaf::calcSenescence(void)
    {
@@ -653,13 +718,16 @@ void Leaf::calcSenescence(void)
 
    double dmGreenLeafToday = dmGreen + dltDmGreen + dmRetranslocate;   // -ve
    double slaToday = divide(laiToday,dmGreenLeafToday);
+   double nGreenToday = nGreen + dltNGreen + dltNRetranslocate;
+
+   // dh - dltSenescedLai can be greater than slaToday if we senesce most of the leaf.
+   // In this scenario, dltDmSenesced could end up greater than dmGreen(!).
+   // To fix this, we divide by start-of-day (pre-senescence) sla.
 
    dltDmSenesced = divide(dltSlai,slaToday);
 
-
-   double slnToday = divide(nGreen,laiToday);
+   double slnToday = divide(nGreenToday,laiToday);
    dltNSenesced  += dltSlai * Max((slnToday - senescedLeafSLN),0.0);
-
    }
 //------------------------------------------------------------------------------------------------
 double Leaf::partitionDM(double dltDM)

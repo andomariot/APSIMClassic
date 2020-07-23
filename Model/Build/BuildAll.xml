@@ -7,18 +7,13 @@
       <DependsOn>Post-Compile</DependsOn>
    </Target>   
    
-   <!-- ############### Target that is run from Jenkins ############### -->
-   <Target name="JenkinsRun">
-      <DependsOn>BobBuildAndRun</DependsOn>
+   <!-- ############### Target that is run from Jenkins to create a release ############### -->
+   <Target name="JenkinsRelease">
+      <DependsOn>Clean</DependsOn>
+      <DependsOn>BuildAll</DependsOn>
       <Job name="Compile InsertFilesIntoSetup">
          <WorkingDirectory>%APSIM%/Release/InsertFilesIntoSetup</WorkingDirectory>
          <CommandLine>make</CommandLine>
-         <CommandLineUnix>/bin/true</CommandLineUnix>
-      </Job>
-      <Job name="Create Bootleg MSI">
-	     <DependsOn>Compile InsertFilesIntoSetup</DependsOn>
-         <WorkingDirectory>%APSIM%/Release</WorkingDirectory>
-         <CommandLine>%APSIM%\Release\CreateInstall.bat %PatchFileNameShort%.Bootleg Bootleg</CommandLine>
          <CommandLineUnix>/bin/true</CommandLineUnix>
       </Job>
       <Job name="Create Release MSI">
@@ -36,18 +31,13 @@
 	  	<WorkingDirectory>%APSIM%/Release</WorkingDirectory>
 	  	<CommandLine>7z a -mx=9 -mmt=on %PatchFileNameShort%.binaries.zip %APSIM%\Model\*.exe %APSIM%\Model\*.dll</CommandLine>
 	  </Job>
-	  <Job name="Create Diff Zip">
-        <WorkingDirectory>%APSIM%/Release</WorkingDirectory>
-        <CommandLine>%APSIM%/Model/CreateDiffZip.exe Directory=%APSIM% PatchFileName=%PatchFileNameShort%</CommandLine>
-      </Job>
    </Target>   
    
    <!-- ############### Cleaning target ############### -->
    <Target name="Clean">
       <Job name="Clean model directory">
-         <WorkingDirectory>%APSIM%/Model/Build</WorkingDirectory>
-         <CommandLine>%APSIM%/Model/cscs.exe RemoveUnwantedFiles.cs Directory=%APSIM%/Model</CommandLine>
-         <CommandLineUnix>mono %APSIM%/Model/cscs.exe RemoveUnwantedFiles.cs Directory=%APSIM%/Model</CommandLineUnix>
+         <WorkingDirectory>%APSIM%/Model</WorkingDirectory>
+		 <CommandLine>git clean -xfdq -e CSGeneral.dll -e JobScheduler.exe *.map *.obj *.o *.lib *.mod *.bak *.dsk *.res *.pch *.dll *.exe *.so *.tds *.a *.pdb *.imp *.map *.r *.idb</CommandLine>
       </Job>
       <Job name="Remove the %APPDATA%\APSIM">
          <WorkingDirectory>%APSIM%</WorkingDirectory>
@@ -60,8 +50,8 @@
    <Target name="Pre-Compile">
       <Job name="Version stamp the build">
          <WorkingDirectory>%APSIM%/Model/Build</WorkingDirectory>
-         <CommandLine>%APSIM%/Model/cscs.exe VersionStamper.cs Directory=%APSIM% Increment=%INCREMENT%</CommandLine>
-         <CommandLineUnix>mono %APSIM%/Model/cscs.exe VersionStamper.cs Directory=%APSIM% Increment=%INCREMENT%</CommandLineUnix>
+         <CommandLine>%APSIM%/Model/cscs.exe VersionStamper.cs Directory=%APSIM% Increment=%INCREMENT% RevisionNumber=%REVISION_NUMBER%</CommandLine>
+         <CommandLineUnix>mono %APSIM%/Model/cscs.exe VersionStamper.cs Directory=%APSIM% Increment=%INCREMENT% RevisionNumber=%REVISION_NUMBER%</CommandLineUnix>
       </Job>	  
       <Job name="Move RunTime files into model directory">
          <WorkingDirectory>%APSIM%/Model/RunTime</WorkingDirectory>
@@ -873,7 +863,12 @@
          <DependsOn>Compile Tests</DependsOn>
          <WorkingDirectory>%APSIM%/Model</WorkingDirectory>
          <CommandLine>APSIM.Tests.exe --out=%APSIM%/Model/Tests/APSIM.Tests.out  --workers=1 --noresult</CommandLine>
-      </Job>   
+      </Job>
+	  
+	  <Job name="Create Diff Zip">
+        <WorkingDirectory>%APSIM%/Release</WorkingDirectory>
+        <CommandLine>%APSIM%/Model/CreateDiffZip.exe Directory=%APSIM% PatchFileName=%PatchFileNameShort%</CommandLine>
+      </Job>
    </Target>
 
   <!-- ############### All test simulations will go here ############### -->

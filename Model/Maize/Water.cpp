@@ -69,6 +69,7 @@ void Water::initialize(void)
    swDemand = 0.0;
    totalSupply = 0.0;      
    dltUptake = 0.0;
+   eswTot = 0;
 //   supplyType = "";
 
    //Init Accumulation Vars
@@ -83,6 +84,15 @@ void Water::initialize(void)
 	EnvType = 1;
 
    }
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+double Water::calcSwDefEarExpansion(void)
+{
+	double sdRatio = divide(totalSupply, swDemand, 10.0);
+	return swEarExpansionTable.value(sdRatio);
+}
+
 //------------------------------------------------------------------------------------------------
 //------ read Water parameters
 //------------------------------------------------------------------------------------------------
@@ -94,6 +104,7 @@ void Water::readParams (void)
    scienceAPI.read("kl", "", 0, kl);
    scienceAPI.read("xf", "", 0, xf);
    scienceAPI.read("ll","mm/mm", 0, ll);
+   swEarExpansionTable.read(scienceAPI, "x_sw_ear_demand_ratio", "y_swdef_ear");
 
    if (ll.size() != (unsigned int)nLayers)
       {
@@ -112,6 +123,9 @@ void Water::readParams (void)
       llDep.push_back(ll[layer]*dLayer[layer]);
       eswCap.push_back(dulDep[layer] - llDep[layer]);
       }
+
+   rootDepth = plant->roots->getRootDepth();
+   currentLayer = findIndex(rootDepth, dLayer);
 
    // report
    char msg[100];
@@ -246,11 +260,12 @@ void Water::process(void)
 //------------------------------------------------------------------------------------------------
 double Water::swAvailRatio(int currentLayer)
    {
-   return  divide (esw[currentLayer],eswCap[currentLayer], 10.0);
+	// dh - Account for uptake which has been taken out of the soil.
+   return  divide (esw[currentLayer] + dltSwDep[currentLayer],eswCap[currentLayer], 10.0);
    }
 double Water::swAFPSRatio(int currentLayer)
    {
-   double numerator = satDep[currentLayer] - swDep[currentLayer];
+   double numerator = satDep[currentLayer] - (swDep[currentLayer] + dltSwDep[currentLayer]);
    return divide (numerator, dLayer[currentLayer], 10.0);
    }
 //------------------------------------------------------------------------------------------------
@@ -279,6 +294,8 @@ void Water::calcStresses(void)
    photoStress = calcSwDefPhoto();
    phenoStress = calcSwDefPheno();
    expansionStress = calcSwDefExpansion();
+   earExpansionStress = calcSwDefEarExpansion();
+
    accumulate(photoStress, photoStressTotal, plant->phenology->currentStage(), plant->phenology->getDltStage());
    accumulate(phenoStress, phenoStressTotal, plant->phenology->currentStage(), plant->phenology->getDltStage());
    accumulate(expansionStress, expanStressTotal, plant->phenology->currentStage(), plant->phenology->getDltStage());
@@ -390,7 +407,9 @@ void Water::calcUptake(void)
    else if (plant->uptake_source == "swim3")
 		{
 	   scienceAPI.get("uptake_water_maize", "",1, dltSwDep);
-	   totalUptake += sumVector(dltSwDep);
+       for (unsigned i = 0; i < dltSwDep.size(); i++)
+           dltSwDep[i] *= -1;
+	   totalUptake += -1 * sumVector(dltSwDep);
 		}
   
    }

@@ -34,7 +34,8 @@ void Stem::initialize(void)
    canopyHeight    = 0.0;
    dmGreenStem     = 0.0;
    dltCanopyHeight = 0.0;
-	dmPlantMax = 9999;
+   dmPlantMax = 9999;
+   dltNConc = 0;
 
    PlantPart::initialize();
    }
@@ -131,9 +132,13 @@ void Stem::calcCanopyHeight(void)
 double Stem::calcNDemand(void)
    {
    nDemand = 0.0;
+   stage = plant->phenology->currentStage();
    // STEM demand (g/m2) to keep stem [N] at levels from  targetStemNConc
    double nRequired = (dmGreen + dltDmGreen) * targetNFn.value(stage);
-   nDemand = Max(nRequired - nGreen,0.0);
+
+   double nToday = nGreen + dltNGreen;
+
+   nDemand = Max(nRequired - nToday,0.0);
    return nDemand;
    }
 //------------------------------------------------------------------------------------------------
@@ -160,6 +165,10 @@ double Stem::provideN(double requiredN)
 
    double nProvided;
 
+   double stemNConcPct = divide((nGreen), (dmGreen + dltDmGreen)) * 100;
+   if (stemNConcPct < structNFn.value(stage) * 100)
+	   return 0;
+
    if(dltNGreen > requiredN)
       {
       nProvided = requiredN;
@@ -171,10 +180,6 @@ double Stem::provideN(double requiredN)
       nProvided = dltNGreen;
       requiredN -= nProvided;
       }
-
-   double stemNConcPct = divide((nGreen),(dmGreen + dltDmGreen)) * 100;
-   if(stemNConcPct < structNFn.value(stage) * 100)
-      return 0;
 
    double dltStemNconc = (dilnNSlope * (stemNConcPct) + dilnNInt)
       * plant->phenology->getDltTT();
@@ -204,7 +209,7 @@ double  Stem::partitionDM(double dltDM)
 	// calculate maximum stem size at flowering + dmPlantMaxTT
 	double ttNow = plant->phenology->sumTTtotal(sowing,maturity);
 
-	if(dmPlantMax >  9990 && ttNow > dmPlantMaxTT + plant->phenology->sumTTtotal  (sowing,flowering))		// not yet calculated - do once
+	if(dmPlantMax >  9990 && ttNow > dmPlantMaxTT + plant->phenology->sumTTtotal  (germination,flowering))		// not yet calculated - do once
 		dmPlantMax = dmGreen;		// maximum stem size /m2
 
 	double dmAvailable =  Min(dmPlantMax - dmGreen , dltDM);

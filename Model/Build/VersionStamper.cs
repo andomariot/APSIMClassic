@@ -21,27 +21,36 @@ class VersionStamper
         try
         {
             if (!Macros.ContainsKey("Directory"))
-                throw new Exception("Usage: VersionStamper Directory=c:\\Apsim [Increment=Yes]");
+                throw new Exception("Usage: VersionStamper Directory=c:\\Apsim [Increment=Yes] [RevisionNumber=4191]");
 
-            // Find SVN
-            string svnexe = "git.exe";
-            if (Path.DirectorySeparatorChar == '/') svnexe = "git";
-            string RevisionNumber = "";
-            try
-            {
-                // Start an SVN process and get head revision number
-                string SVNFileName = FindFileOnPath(svnexe);
-                string Arguments = "show-ref --head --tags -s";
-                
-                Process P = RunProcess(SVNFileName, Arguments, 
-				    Macros["Directory"] == "" ? 
-					  Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) :
-					  Macros["Directory"]);
-                string StdOut = CheckProcessExitedProperly(P);
-                string[] StdOutLines = StdOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                RevisionNumber = StdOutLines[0];
-            }
-            catch (Exception e) {Console.WriteLine("WARNING - while finding git commit hash" + e.Message);}
+            string RevisionNumber = "0";
+			if (Macros.ContainsKey("RevisionNumber") && Macros["RevisionNumber"] != "%REVISION_NUMBER%")
+				RevisionNumber = Macros["RevisionNumber"];
+			else
+			{
+				// Use hash of last git commit as revision number
+				string svnexe = "git.exe";
+				if (Path.DirectorySeparatorChar == '/') svnexe = "git";
+				try
+				{
+					// Start an SVN process and get head revision number
+					string SVNFileName = FindFileOnPath(svnexe);
+					string Arguments = "show-ref --head --tags -s";
+					
+					Process P = RunProcess(SVNFileName, Arguments, 
+						Macros["Directory"] == "" ? 
+						Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) :
+						Macros["Directory"]);
+					string StdOut = CheckProcessExitedProperly(P);
+					string[] StdOutLines = StdOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+					RevisionNumber = StdOutLines[0];
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine("WARNING - while finding git commit hash: " + e.Message);
+					Console.WriteLine("Resorting to fallback revision number 0");
+				}
+			}
             
 
             // Write the VersionInfo.make
@@ -68,19 +77,16 @@ class VersionStamper
             Out.Close();
 
             // Write the VersionInfo.cs
+			int ignore;
             Out = new StreamWriter("VersionInfo.cs");
             Out.WriteLine("using System.Reflection;");
-            Out.WriteLine("[assembly: AssemblyFileVersion(\"" + Major.ToString() + "." +
-                                                                Minor.ToString() + "." +
-                                                                "0.0\")]");
+            Out.WriteLine(string.Format("[assembly: AssemblyFileVersion(\"{0}.{1}.{2}.{3}\")]", Major, Minor, int.TryParse(RevisionNumber, out ignore) ? RevisionNumber : "0", "0"));
             Out.Close();
 
             // Write the VersionInfo.vb
             Out = new StreamWriter("VersionInfo.vb");
             Out.WriteLine("Imports System.Reflection");
-            Out.WriteLine("<Assembly: AssemblyFileVersion(\"" + Major.ToString() + "." +
-                                                                Minor.ToString() + "." +
-                                                                "0.0\")>");
+            Out.WriteLine(string.Format("<Assembly: AssemblyFileVersion(\"{0}.{1}.{2}.{3}\")>", Major, Minor, int.TryParse(RevisionNumber, out ignore) ? RevisionNumber : "0", "0"));
             Out.Close();
 
             // Write the VersionInfo.cpp

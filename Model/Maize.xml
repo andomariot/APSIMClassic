@@ -60,7 +60,7 @@
       -->
     <twilight units="o" description="Degrees below the horizon">-6.0</twilight>
     <!--  Twilight is defined as the interval between sunrise or sunset and the time when the true 
-	  centre of the sun is 2.2 degrees below the horizon. Sunrise or sunset is defined as when
+    centre of the sun is 2.2 degrees below the horizon. Sunrise or sunset is defined as when
       the true centre of the sun is 50' below the horizon.
       __________________________________________________________________________________________________-
       THERMAL TIME CALCULATION
@@ -132,7 +132,9 @@
     <!-- __________________________________________________________________________________________________-
       GRAIN - Effect of temperature stress on Grain number
       -->
-    <GrainTempWindow>-150 50</GrainTempWindow>
+    <GrainTempWindow>-50 100</GrainTempWindow>
+    <GrainHiTemperature type="text" description="Grain High Temperature">32 33 36 38</GrainHiTemperature>
+    <GrainStressSeverity type="text" description="Severity of seed set stress">0 0.14 0.23 0.65</GrainStressSeverity>
     <!-- __________________________________________________________________________________________________-
       GRAIN WATER CONTENT
       -->
@@ -142,17 +144,17 @@
          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       ______________________________________________________________________
       LEAF SIZE AS A FUNCTION OF LEAF NUMBER
-	  Improved methods for predicting individual leaf area and leaf senescence in maize
+    Improved methods for predicting individual leaf area and leaf senescence in maize
       (Zea mays) C.J. Birch, G.L. Hammer and K.G. Ricket. Aust. J Agric. Res., 1998, 49, 249-62
       -->
     <aX0 type="text" description="Largest leaf position multiplier">0.67</aX0>
     <largestLeafParams type="text" description="Largest Leaf Area Params">1000  -1.17 0.047 </largestLeafParams>
     <!-- params for the size of the largest leaf aMaxA, aMaxB, aMaxC
-	where aMaxA, aMaxB, aMaxC are Eqn 13 parameters and aX0 is Eqn 14 parameter
-	-->
+  where aMaxA, aMaxB, aMaxC are Eqn 13 parameters and aX0 is Eqn 14 parameter
+  -->
     <bellCurveParams type="text" description="Leaf Curve Params">-0.009 -0.2 0.0006 -0.43</bellCurveParams>
     <!--   a0, a1, b0, b1,  where a0,a1 are parameters of calc for a (bell curve width)
-	b0,b1 for b (skewness)  Eqn 18, 19 -->
+  b0,b1 for b (skewness)  Eqn 18, 19 -->
     <leaf_no_correction description="Correction for other growing leaves">2.0</leaf_no_correction>
     <!-- ______________________________________________________________________
       SPECIFIC LEAF AREA - SLA
@@ -279,7 +281,7 @@
     <sen_radn_crit units="Mj/m^2" description="radiation level for onset of light senescence">2</sen_radn_crit>
     <!--  frost
       -->
-    <frost_kill units="oC" description="temperature threshold for leaf death">-3.0</frost_kill>
+    <frost_kill units="oC" description="temperature threshold for leaf death">1.0</frost_kill>
     <!--  water
       -->
     <sen_water_time_const units="days" description="delay factor for water senescence">10.0</sen_water_time_const>
@@ -820,7 +822,7 @@
              *** early-med maturing   sc501, sr52, r215, MH18, CG4141
              *** med-late maturing    sc601, sc625, sc623, malawi_local, MH12, MH16, MH17, MH19
              *** late maturing        sc709
-			 ***
+       ***
              ****************************************************
              *********** early maturing varieties ***************
              ****************************************************
@@ -1407,13 +1409,13 @@
       <y_height units="mm" description="plant canopy height">0  2000</y_height>
     </makueni>
     <!-- maize hybrids added by SVA on Nov 24, 2014 
-	     updated May 10, 2018 by SVA for 7.10 version -->
+       updated May 10, 2018 by SVA for 7.10 version -->
     <!-- calibrated hybrids from Iowa (Agronomy J 106: 1025-1040)
-	note: the number after the name indicates relative maturity (e.g. 104 days). 
-	Pioneer_35P12_104
-	Pioneer_P04612XR_106
-	DKC_6018_110
-	DKC_5139_101 -->
+  note: the number after the name indicates relative maturity (e.g. 104 days). 
+  Pioneer_35P12_104
+  Pioneer_P04612XR_106
+  DKC_6018_110
+  DKC_5139_101 -->
     <!-- Iowa, USA -->
     <Pioneer_35P12_104 cultivar="yes">
       <tt_emerg_to_endjuv units="oC">275</tt_emerg_to_endjuv>
@@ -1472,12 +1474,12 @@
       <potKernelWt>300</potKernelWt>
     </DKC_5139_101>
     <!-- generic hybrids used for teaching and as initial values when i am setting up a new simulation  
-	     updated May 10, 2018 by SVA for 7.10 version
-	
-	A_80, A_90, A_100, A_105, A_110, A_115, A_120, A_130
-	B_80, B_90, B_100, B_105, B_110, B_115, B_120, B_130 
-	
-	see attached PDF page 27 (fig 3) about the methodology used to derive these hybrids. 
+       updated May 10, 2018 by SVA for 7.10 version
+  
+  A_80, A_90, A_100, A_105, A_110, A_115, A_120, A_130
+  B_80, B_90, B_100, B_105, B_110, B_115, B_120, B_130 
+  
+  see attached PDF page 27 (fig 3) about the methodology used to derive these hybrids. 
     The number after the first letter indicates relative maturity (e.g. 100 days) 
     The letters A and B refer to two different seed companies
     The both A and B hybrids have the same GDD to maturity but different GDD to flowering -->
@@ -1669,13 +1671,13 @@
     </B_105>
     <!-- this hybrid used for natalia's paper, sept 2015. this has the b-110 params that i used in the sensitivity analysis -->
     <!-- <B_105_biochar cultivar="yes">
-	  <derived_from>B_105</derived_from>
-	  <tt_emerg_to_endjuv units="oC">280</tt_emerg_to_endjuv>
-	  <tt_flower_to_maturity>832</tt_flower_to_maturity>
+    <derived_from>B_105</derived_from>
+    <tt_emerg_to_endjuv units="oC">280</tt_emerg_to_endjuv>
+    <tt_flower_to_maturity>832</tt_flower_to_maturity>
       <tt_flower_to_start_grain description="70  (oC)! MJR changed 21/3/00">170 </tt_flower_to_start_grain>
       <tt_maturity_to_ripe units="oC">100</tt_maturity_to_ripe>
-	  <potKernelWt>300</potKernelWt>
-	</B_105_biochar>  -->
+    <potKernelWt>300</potKernelWt>
+  </B_105_biochar>  -->
     <B_110 cultivar="yes">
       <tt_emerg_to_endjuv units="oC">244</tt_emerg_to_endjuv>
       <tt_flower_to_maturity>885</tt_flower_to_maturity>
